@@ -1,0 +1,24 @@
+{
+  "name": "sde-test",
+  "version": "1.0.0",
+  "description": "The purpose of this test is to evaluate your:",
+  "bin": {
+    "sde-cli": "./bin/index.js"
+  },
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gogitarakesh/sde-test.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gogitarakesh/sde-test/issues"
+  },
+  "homepage": "https://github.com/gogitarakesh/sde-test#readme",
+  "dependencies": {
+    "yargs": "^13.2.4"
+  }
+}
