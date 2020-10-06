@@ -1,61 +1,97 @@
-
 class CommonUtils {
 
-	cleanData (data) {
-		data.forEach(item => {
-			item['tenor'] = item['tenor'].split(' ')[0];
-			item['yield'] = item['yield'].split('%')[0]
+	/**
+	 * Cleans data to get rid of units in tenor and yield
+	 * @param {*} data 
+	 */
+  cleanData(data) {
+    data.forEach((item) => {
+      item["tenor"] = item["tenor"].split(" ")[0];
+      item["yield"] = item["yield"].split("%")[0];
+    });
+    return data;
+  }
+
+	/**
+	 * Removes objects that contains any null field in input data
+	 * @param {*} data 
+	 */
+  removeNullItems(data) {
+    const isEmpty = (object) =>
+      Object.values(object).some((x) => x === null || x === "");
+    return data.filter((x) => !isEmpty(x));
+  }
+
+	/**
+	 * Generates separate individual list for corporate and government bonds
+	 * @param {*} data 
+	 */
+  generateSeparateList(data) {
+    const corpBonds = [],
+      govtBonds = [];
+    data.forEach((x) => {
+      if (x.type === "government") {
+        govtBonds.push(x);
+      } else if (x.type === "corporate") {
+        corpBonds.push(x);
+      }
 		});
-		return data;
-	}
+    return [corpBonds, govtBonds];
+  }
 
-	removeNullItems (data) {
-		const isEmpty = (object) => Object.values(object).some(x => (x === null || x === ''));
-		return data.filter(x => !isEmpty(x));
-	}
+	/**
+	 * Finds the closest item to the target in the array
+	 * @param {*} target target number
+	 * @param {*} array input data
+	 * @param {*} tiebreaker  key in the array that will be used as the tiebreaker
+	 */
+  findClosestItem(target, array, tiebreaker) {
+    return array.reduce((a, b) => {
+      const aDiff = Math.abs(a.tenor - target);
+      const bDiff = Math.abs(b.tenor - target);
 
-	generateSeparateList (data) {
-		const corporateBonds = [], govtBonds = [];
-		data.forEach(x => {
-			if(x.type === "government") {
-				govtBonds.push(x);
-			} else if(x.type === "corporate") {
-				corporateBonds.push(x);
-			}
-		});
-		return [corporateBonds, govtBonds];
-	}
+      if (aDiff == bDiff) {
+        return a[tiebreaker] > b[tiebreaker] ? a : b;
+      } else {
+        return bDiff < aDiff ? b : a;
+      }
+    });
+  }
 
-	findClosestItem (item, array) {
-		return array.reduce((a, b) => {
-			let aDiff = Math.abs(a.tenor - item);
-			let bDiff = Math.abs(b.tenor - item);
+	/**
+	 * Generates the output result data
+	 * @param {*} corpBonds corporate bonds
+	 * @param {*} govtBonds government bonds
+	 */
+  generateResult(corpBonds, govtBonds) {
+    let a = 0;
+    let resultData = [];
+    corpBonds.sort((a, b) => a.tenor - b.tenor);
+    govtBonds.sort((a, b) => a.tenor - b.tenor);
+    while (a < corpBonds.length) {
+      const closestBond = this.findClosestItem(
+        corpBonds[a].tenor,
+        govtBonds,
+        "amount_outstanding"
+			);
+      const bpsValue = this.calcBps(corpBonds[a].yield, closestBond.yield);
+      resultData.push({
+        corporate_bond_id: corpBonds[a].id,
+        government_bond_id: closestBond.id,
+        spread_to_benchmark: `${bpsValue} bps`,
+      });
+      a++;
+    }
+    return { result: { data: resultData } };
+  }
 
-			if (aDiff == bDiff) {
-					return a.amount_outstanding > b.amount_outstanding ? a : b;
-			} else {
-					return bDiff < aDiff ? b : a;
-			}
-		});
-	}
-
-	generateResult (arr1, arr2) {
-		arr1.sort((a, b) => a.tenor - b.tenor);
-		arr2.sort((a, b) => a.tenor - b.tenor);
-		let result = {
-			data: []
-		};
-		let a= 0;
-		while(a < arr1.length) {
-			const closestItem= this.findClosestItem(arr1[a].tenor, arr2);
-			result.data.push({
-				corporate_bond_id: arr1[a].id,
-				government_bond_id: closestItem.id,
-				spread_to_benchmark: `${Math.round((arr1[a].yield - closestItem.yield)*100)} bps`
-			})
-			a ++;
-		}
-		return result;
+	/**
+	 * Calculate BPS based on the input yields
+	 * @param {*} yieldOne 
+	 * @param {*} yieldTwo 
+	 */
+  calcBps(yieldOne, yieldTwo) {
+    return Math.round((yieldOne - yieldTwo) * 100);
 	}
 	
 }
